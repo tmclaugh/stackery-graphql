@@ -1,67 +1,94 @@
 AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
-Description: Stackery Serverless API Example Stack 
+Description: Stackery Serverless API Example Stack
 Resources:
-  function61D00F31:
-    Type: AWS::Serverless::Function
-    Properties:
-      FunctionName: !Sub ${AWS::StackName}-function61D00F31
-      Description: !Sub
-        - Stackery Stack ${StackeryStackTagName} Environment ${StackeryEnvironmentTagName} Function ${ResourceName}
-        - ResourceName: getWelcomePage
-      CodeUri: src/getWelcomePage
-      Handler: index.handler
-      Runtime: nodejs8.10
-      MemorySize: 3008
-      Timeout: 30
-      Tracing: Active
-      Policies:
-        - AWSXrayWriteOnlyAccess
-      Events:
-        apiFE76C470:
-          Type: Api
-          Properties:
-            Path: /
-            Method: GET
-            RestApiId: !Ref apiFE76C470
-    Metadata:
-      StackeryName: getWelcomePage
-  apiFE76C470:
-    Type: AWS::Serverless::Api
+  graphql4948831:
+    Type: AWS::AppSync::GraphQLApi
     Properties:
       Name: !Sub
         - ${ResourceName} From Stackery Stack ${StackeryStackTagName} Environment ${StackeryEnvironmentTagName}
-        - ResourceName: apiFE76C470
-      StageName: !Ref StackeryEnvironmentAPIGatewayStageName
-      DefinitionBody:
-        swagger: '2.0'
-        info: {}
-        paths:
-          /:
-            get:
-              x-amazon-apigateway-integration:
-                httpMethod: POST
-                type: aws_proxy
-                uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${function61D00F31.Arn}/invocations
-              responses: {}
-      EndpointConfiguration: REGIONAL
-  function8E6C5467:
-    Type: AWS::Serverless::Function
-    Properties:
-      FunctionName: !Sub ${AWS::StackName}-function8E6C5467
-      Description: !Sub
-        - Stackery Stack ${StackeryStackTagName} Environment ${StackeryEnvironmentTagName} Function ${ResourceName}
-        - ResourceName: logErrors
-      CodeUri: src/logErrors
-      Handler: index.handler
-      Runtime: nodejs8.10
-      MemorySize: 3008
-      Timeout: 30
-      Tracing: Active
-      Policies:
-        - AWSXrayWriteOnlyAccess
+        - ResourceName: Cars
+      AuthenticationType: AWS_IAM
+      LogConfig:
+        FieldLogLevel: ALL
+        CloudWatchLogsRoleArn: !GetAtt graphql4948831LogsRole.Arn
     Metadata:
-      StackeryName: logErrors
+      StackeryName: Cars
+  graphql4948831Schema:
+    Type: AWS::AppSync::GraphQLSchema
+    Properties:
+      ApiId: !GetAtt graphql4948831.ApiId
+      DefinitionS3Location: graphql4948831/schema.graphql
+  graphql4948831LogsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          Effect: Allow
+          Principal:
+            Service: appsync.amazonaws.com
+          Action: sts:AssumeRole
+      RoleName: !Sub ${AWS::StackName}-graphql4948831-logging
+      Policies:
+        - PolicyName: Log
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/appsync/apis/*
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/appsync/apis/*:log-stream:*
+  graphql4948831QuerygetCarResolver:
+    Type: AWS::AppSync::Resolver
+    Properties:
+      TypeName: Query
+      DataSourceName: !GetAtt graphql4948831LocalDataSource.Name
+      RequestMappingTemplateS3Location: graphql4948831/Query-getCar-request.vm
+      ResponseMappingTemplateS3Location: graphql4948831/Query-getCar-response.vm
+      ApiId: !GetAtt graphql4948831.ApiId
+      FieldName: getCar
+    DependsOn: graphql4948831Schema
+  graphql4948831LocalDataSource:
+    Type: AWS::AppSync::DataSource
+    Properties:
+      Type: NONE
+      ApiId: !GetAtt graphql4948831.ApiId
+      Name: Local
+  graphql4948831QuerylistCarsResolver:
+    Type: AWS::AppSync::Resolver
+    Properties:
+      TypeName: Query
+      DataSourceName: !GetAtt graphql4948831LocalDataSource.Name
+      RequestMappingTemplateS3Location: graphql4948831/Query-listCars-request.vm
+      ResponseMappingTemplateS3Location: graphql4948831/Query-listCars-response.vm
+      ApiId: !GetAtt graphql4948831.ApiId
+      FieldName: listCars
+    DependsOn: graphql4948831Schema
+  graphql4948831MutationputCarResolver:
+    Type: AWS::AppSync::Resolver
+    Properties:
+      TypeName: Mutation
+      DataSourceName: !GetAtt graphql4948831LocalDataSource.Name
+      RequestMappingTemplateS3Location: graphql4948831/Mutation-putCar-request.vm
+      ResponseMappingTemplateS3Location: graphql4948831/Mutation-putCar-response.vm
+      ApiId: !GetAtt graphql4948831.ApiId
+      FieldName: putCar
+    DependsOn: graphql4948831Schema
+  graphql4948831MutationdeleteCarResolver:
+    Type: AWS::AppSync::Resolver
+    Properties:
+      TypeName: Mutation
+      DataSourceName: !GetAtt graphql4948831LocalDataSource.Name
+      RequestMappingTemplateS3Location: graphql4948831/Mutation-deleteCar-request.vm
+      ResponseMappingTemplateS3Location: graphql4948831/Mutation-deleteCar-response.vm
+      ApiId: !GetAtt graphql4948831.ApiId
+      FieldName: deleteCar
+    DependsOn: graphql4948831Schema
 Parameters:
   StackeryStackTagName:
     Type: String
@@ -69,9 +96,3 @@ Parameters:
   StackeryEnvironmentTagName:
     Type: String
     Description: Environment Name (injected by Stackery at deployment time)
-  StackeryEnvironmentAPIGatewayStageName:
-    Type: String
-    Description: Environment name used for API Gateway Stage names (injected by Stackery at deployment time)
-Metadata:
-  StackeryErrorsTargets:
-    function8E6C5467: {}

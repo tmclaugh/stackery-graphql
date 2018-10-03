@@ -1,0 +1,22 @@
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+type Car {
+  id: ID!
+  make: String!
+  model: String!
+  year: Int!
+  color: String!
+}
+
+
+type Query {
+  getCar(id: ID!): Car
+  listCars: [Car]
+}
+type Mutation {
+  putCar(id: ID!, make: String!, model: String!, year: Int!, color: String!): Car
+  deleteCar(id: ID!): Car
+}
